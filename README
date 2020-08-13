@@ -1,0 +1,2 @@
+to do:
+1、回测过程为什么E:\vnpy_digu\vnpy\trader\database\__init__.py断点不能进入，导致创建的都是sql的dbmanager
