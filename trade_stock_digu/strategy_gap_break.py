@@ -18,13 +18,13 @@ class StrategyGapBreak(StrategyBase):
 
     待补充：
     """
-    n_years = 2     # 上市时间超过n_years年
-    days_gap = 5    # 股票运行在缺口之上运行天数
-    pct_near_gap = 0.03 #缺口大小百分：(缺口上沿价格-缺口下沿价格)/缺口下沿价格    
-    max_times_in_year = 3   #股票年内最大涨幅 high_250/low_250
-    days_break = 250    # 缺口（准备）突破的N日新高
+    days_gap = 10    # 股票运行在缺口之上运行天数
+    days_break = 500    # 缺口（准备）突破的N日新高
+    n_years = 2     # 上市时间超过n_years年    
+    pct_near_gap = 0.06 #缺口大小百分：(突破日缺口上沿价格-缺口下沿价格)/缺口下沿价格    
+    max_times_in_year = 4   #股票年内最大涨幅 high_250/low_250    
     pct_high_break = 0.1    # 缺口下沿价格距离长期最高价格（days_break）的百分比 
-    pct_max = 0.2   # 缺口上的最大涨幅 （缺口上的最高价-缺口下沿价格）/缺口下沿价格
+    pct_max = 0.4  # 缺口上的最大涨幅 （缺口上的最高价-缺口下沿价格）/缺口下沿价格
     # def __init__(self, cta_engine, strategy_name, vt_symbol, setting):
     #     """"""
     #     super().__init__()
@@ -75,7 +75,7 @@ class StrategyGapBreak(StrategyBase):
 if __name__ == "__main__":
     ds_tushare = DataServiceTushare()
     strategy = StrategyGapBreak()
-    print(strategy.pick_stock('20200812'))
+    print(strategy.pick_stock('20200817'))
     # lst_trade_date = ds_tushare.get_trade_cal('20200101', '20200701')
     # cnt_loop = 0
     # for item_date in lst_trade_date:

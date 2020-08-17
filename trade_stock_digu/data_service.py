@@ -20,8 +20,10 @@ from vnpy.app.cta_strategy import (
     ArrayManager
 )
 from vnpy.trader.constant import Exchange
-from vnpy.tools.convert_utils import string_to_datetime, time_to_str
-from vnpy.tools.logger import Logger
+# from vnpy.quant_big_a.tools.convert_utils import string_to_datetime, time_to_str
+# from vnpy.quant_big_a.tools.logger import Logger
+from tools.convert_utils import string_to_datetime, time_to_str
+from tools.logger import Logger
 
 # 加载配置
 # config = open('C:/vnstudio/Lib/site-packages/vnpy/trade_stock_digu/config.json')
@@ -626,7 +628,7 @@ class DataServiceTushare(object):
 
     def get_curve_date(self):
         cl_stk_pool_cur = self.db[CL_STK_POOL_CUR]
-        ret = cl_stk_pool_cur.find_one(sort=[('_id', 1)])
+        ret = cl_stk_pool_cur.find_one(sort=[('date', ASCENDING)])
         date_end = self.get_trade_date(self.db_date)
         if ret is not None:
             return ret['date'], date_end
@@ -643,6 +645,6 @@ class DataServiceTushare(object):
         ret = cl_stk_pool_daily.find_one({'ts_code': code}, {'_id': 0})
         return ret
 
-if __name__ == "__main__":
-    ds_tushare = DataServiceTushare()
-    ds_tushare.build_stock_data(update=False)
+# if __name__ == "__main__":
+#     ds_tushare = DataServiceTushare()
+#     ds_tushare.build_stock_data(update=True)

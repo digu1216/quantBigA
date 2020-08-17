@@ -13,9 +13,12 @@ from PyQt5.QtWidgets import QGridLayout, QVBoxLayout
 from ui.Ui_stock_pool_track import Ui_MainWindow
 from datetime import datetime
 from datetime import timedelta
-from vnpy.tools.convert_utils import string_to_datetime, time_to_str
-from vnpy.tools.logger import Logger
-from vnpy.trade_stock_digu.data_service import DataServiceTushare, LOG, IndexCode
+# from vnpy.quant_big_a.tools.convert_utils import string_to_datetime, time_to_str
+# from vnpy.quant_big_a.tools.logger import Logger
+# from vnpy.quant_big_a.trade_stock_digu.data_service import DataServiceTushare, LOG, IndexCode
+from tools.convert_utils import string_to_datetime, time_to_str
+from tools.logger import Logger
+from trade_stock_digu.data_service import DataServiceTushare, LOG, IndexCode
 
 #创建一个matplotlib图形绘制类
 class MyFigure(FigureCanvas):
@@ -88,6 +91,7 @@ class MainWindow(QtWidgets.QMainWindow):
         date_range = self.ds_tushare.get_curve_date()
         self.date_begin = date_range[0]                    
         self.date_end = date_range[1]
+        self.fill_null_cur_stock_pool()
         # GUI的groupBox中创建一个布局，用于添加MyFigure类的实例（即图形）后其他部件。 
         self.gridlayout_his = QGridLayout(self.__ui.groupBox_daily)  # 继承容器groupBox
         self.gridlayout_his.addWidget(self.F_his,0,0)        
@@ -326,7 +330,14 @@ class MainWindow(QtWidgets.QMainWindow):
             item_pre = temp
         return np.array(lst_ret)
         
-
+    def fill_null_cur_stock_pool(self):
+        cur_date_lst = self.ds_tushare.get_cur_stock_pool_date_lst()
+        if len(cur_date_lst) != 0:
+            cur_update_date = cur_date_lst[-1]
+            fill_date_lst = self.ds_tushare.get_trade_cal(cur_update_date, self.date_end)       
+            for item in fill_date_lst: 
+                self.ds_tushare.cur_stock_pool_in_db([], item)
+                
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)  # 创建app，用QApplication类
     myWidget = MainWindow()

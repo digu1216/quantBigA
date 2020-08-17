@@ -24,7 +24,7 @@ class StrategyBullBack(StrategyBase):
     pct_near = 0.02
     pct_back = 0.3
     max_times_in_year = 4
-    ma_long = 250
+    ma_long = 60
     # def __init__(self, cta_engine, strategy_name, vt_symbol, setting):
     #     """"""
     #     super().__init__()
@@ -77,7 +77,7 @@ class StrategyBullBack(StrategyBase):
 if __name__ == "__main__":
     ds_tushare = DataServiceTushare()
     strategy = StrategyBullBack()
-    print(strategy.pick_stock('20200811'))
+    print(strategy.pick_stock('20200814'))
     # lst_trade_date = ds_tushare.get_trade_cal('20200101', '20200701')
     # cnt_loop = 0
     # for item_date in lst_trade_date:
