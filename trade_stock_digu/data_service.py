@@ -52,6 +52,8 @@ CL_STK_HOLDERTRADE = setting['CL_STK_HOLDERTRADE']
 CL_STK_POOL_DAILY = setting['CL_STK_POOL_DAILY']
 CL_STK_POOL_CUR = setting['CL_STK_POOL_CUR']
 CL_STK_TOP_LIST = setting['CL_STK_TOP_LIST']
+CL_STK_POOL_ZZ500 = setting['CL_STK_POOL_ZZ500']
+CL_INDEX_ZZ500 = setting['CL_INDEX_ZZ500']
 
 LOG = Logger().getlog()
 
@@ -89,8 +91,8 @@ class DataServiceTushare(object):
     ts_code: 在程序中采用000001_SZ的格式，调用tushare接口时替换为000001.SZ格式
     """
 
-    mc = MongoClient(MONGO_HOST, MONGO_PORT, username=MONGO_USER, password=MONGO_PASSWORD)  # Mongo连接
-    # mc = MongoClient("mongodb://124.70.183.208:27017/", username='root', password='qiuqiu78')
+    # mc = MongoClient(MONGO_HOST, MONGO_PORT, username=MONGO_USER, password=MONGO_PASSWORD)  # Mongo连接
+    mc = MongoClient("mongodb://124.70.183.208:27017/", username='root', password='qiuqiu78')
     db = mc[STOCK_DB_NAME]  # 数据库
     db_vnpy = mc[STOCK_DB_NAME_VNPY]  # 数据库
     count_max_retry = 10
@@ -645,6 +647,131 @@ class DataServiceTushare(object):
         ret = cl_stk_pool_daily.find_one({'ts_code': code}, {'_id': 0})
         return ret
 
-# if __name__ == "__main__":
-#     ds_tushare = DataServiceTushare()
-#     ds_tushare.build_stock_data(update=True)
+    def zz500_stock_pool_in_db(self, year_lst):
+        def get_begin_end_date_in_month(year):
+            year = int(year)
+            begin_date_lst = list()
+            end_date_lst = list()
+            for x in range(1, 13):
+                dt_start = (datetime(year, x, 1)).strftime("%Y%m%d")
+                if 12 == x:
+                    dt_end = (datetime(year, 12, 31)).strftime("%Y%m%d")
+                else:
+                    dt_end = (datetime(year, x+1, 1) - timedelta(days = 1)).strftime("%Y%m%d")
+                begin_date_lst.append(dt_start)
+                end_date_lst.append(dt_end)
+            return begin_date_lst, end_date_lst
+        cl_zz500 = self.db[CL_STK_POOL_ZZ500]
+        cl_zz500.create_index([('trade_month', ASCENDING), ('ts_code', ASCENDING)], unique=True)
+        df_pre = None
+        for item in year_lst:
+            begin_date_lst, end_date_lst = get_begin_end_date_in_month(item)
+            for begin, end in zip(begin_date_lst, end_date_lst):
+                df_ret = self.pro.index_weight(index_code='000905.SH', start_date=begin, end_date=end)
+                if df_ret.empty is True:
+                    df_ret = df_pre
+                    df_ret.loc[:, 'trade_date'] = end
+                # df_ret.rename(columns={'con_code':'ts_code'}, inplace = True)
+                df_ret.loc[:, 'index_code'] = df_ret.loc[:, 'index_code'].apply(lambda x : x.replace('.', '_'))
+                df_ret.loc[:, 'ts_code'] = df_ret.loc[:, 'con_code'].apply(lambda x : x.replace('.', '_'))
+                df_ret.loc[:, 'trade_month'] = df_ret.loc[:, 'trade_date'].apply(lambda x : x[:6])
+                # df_ret.drop(columns=['con_code', 'trade_date'], inplace=True)
+                df_pre = df_ret
+                cl_zz500.insert_many(json.loads(df_ret.T.to_json()).values())
+
+    def get_stock_pool_zz500(self, month):
+        lst_code = list()
+        cl_zz500 = self.db[CL_STK_POOL_ZZ500]
+        stock_basic_lst = list(cl_zz500.find({'trade_month': month}, {'ts_code': 1}).sort("ts_code", ASCENDING))
+        for d in stock_basic_lst:  
+            lst_code.append(d['ts_code'])
+        return lst_code
+
+    def compute_index_zz500_specifications(self, df):
+        # 注意：所有的数据库数据和列表数据都按照日期的正序排序(从小到大)
+        # 计算zz500指数的技术指标并入库
+        """
+        @ 入参：指数k线信息
+        """
+        am = ArrayManager(size=600)   
+        for ix, row in df.iterrows():
+            d = row.to_dict()     
+            print(d['trade_date'])         
+            d['ts_code'] = d['ts_code'].replace('.', '_')
+            bar = BarData(
+                    gateway_name='ctp', symbol=d['ts_code'],
+                    exchange=Exchange.SSE,
+                    datetime=string_to_datetime(d['trade_date']))
+            bar.symbol = d['ts_code']
+            bar.open_price = d['open']
+            bar.high_price = d['high']
+            bar.low_price = d['low']
+            bar.close_price = d['close']
+            am.update_bar(bar)
+            try:
+                d['ma_5'] = am.sma(5)
+            except:
+                traceback.print_exc()                    
+                LOG.error('************************')
+                LOG.error(d['ts_code'])
+                LOG.error(d['trade_date'])
+                LOG.error(bar)
+            d['ma_10'] = am.sma(10)
+            d['ma_20'] = am.sma(20)
+            d['ma_30'] = am.sma(30)
+            d['ma_60'] = am.sma(60)
+            d['ma_120'] = am.sma(120)
+            d['ma_250'] = am.sma(250)
+            d['ma_500'] = am.sma(500)
+            flt = {'trade_date': d['trade_date']}
+            cl_index_zz500 = self.db[CL_INDEX_ZZ500]
+            cl_index_zz500.replace_one(flt, d, upsert=True)
+
+    def zz500_index_in_db(self, date_begin, date_end):
+        df_index_zz500 = self.pro.index_daily(ts_code='000905.SH', start_date=date_begin, end_date=date_end)
+        df_index_zz500.sort_values(by='trade_date', inplace=True)
+        lst_date = self.get_trade_cal(date_begin, date_end)
+        cnt_up_lst = list()
+        cnt_down_lst = list()
+        cnt_ma60_up_lst = list()
+        cnt_ma60_down_lst = list()
+        for item_date in lst_date:
+            print(item_date)
+            cnt_up = 0
+            cnt_down = 0
+            cnt_ma60_up = 0
+            cnt_ma60_down = 0
+            item_month = item_date[0:6]
+            stock_pool = self.get_stock_pool_zz500(item_month)
+            for item_code in stock_pool:
+                stock_k_data = self.get_stock_price_info(item_code, item_date)
+                if stock_k_data is not None:
+                    if stock_k_data['pct_chg'] > 0:
+                        cnt_up += 1
+                    else:
+                        cnt_down += 1
+                    if stock_k_data['close'] > stock_k_data['ma_60']:
+                        cnt_ma60_up += 1
+                    else:
+                        cnt_ma60_down += 1
+            cnt_up_lst.append(cnt_up)
+            cnt_down_lst.append(cnt_down)
+            cnt_ma60_up_lst.append(cnt_ma60_up)
+            cnt_ma60_down_lst.append(cnt_ma60_down)
+        col_up =  pd.Series(cnt_up_lst)
+        col_down =  pd.Series(cnt_down_lst)
+        col_ma60_up =  pd.Series(cnt_ma60_up_lst)
+        col_ma60_down =  pd.Series(cnt_ma60_down_lst)
+        df_index_zz500.loc[:, 'stk_cnt_up'] = col_up
+        df_index_zz500.loc[:, 'stk_cnt_down'] = col_down
+        df_index_zz500.loc[:, 'stk_cnt_ma60_up'] = col_ma60_up
+        df_index_zz500.loc[:, 'stk_cnt_ma60_down'] = col_ma60_down
+        self.compute_index_zz500_specifications(df_index_zz500)
+
+
+if __name__ == "__main__":
+    ds_tushare = DataServiceTushare()
+    # ds_tushare.build_stock_data(update=True)
+    # ds_tushare.zz500_stock_pool_in_db(['2015', '2016', '2017', '2018', '2019', '2020'])
+    # ds_tushare.zz500_stock_pool_in_db(['2019', '2020'])
+    ds_tushare.zz500_index_in_db('20200721', '20200807')
