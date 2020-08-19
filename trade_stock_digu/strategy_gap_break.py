@@ -18,8 +18,8 @@ class StrategyGapBreak(StrategyBase):
 
     待补充：
     """
-    days_gap = 10    # 股票运行在缺口之上运行天数
-    days_break = 500    # 缺口（准备）突破的N日新高
+    days_gap = 5    # 股票运行在缺口之上运行天数
+    days_break = 250    # 缺口（准备）突破的N日新高
     n_years = 2     # 上市时间超过n_years年    
     pct_near_gap = 0.06 #缺口大小百分：(突破日缺口上沿价格-缺口下沿价格)/缺口下沿价格    
     max_times_in_year = 4   #股票年内最大涨幅 high_250/low_250    

@@ -8,7 +8,7 @@ from enum import Enum
 from collections import deque
 import traceback
 import os
-
+import talib
 from datetime import datetime
 from datetime import timedelta
 from time import time, sleep
@@ -707,7 +707,9 @@ class DataServiceTushare(object):
             bar.high_price = d['high']
             bar.low_price = d['low']
             bar.close_price = d['close']
-            am.update_bar(bar)
+            am.update_bar(bar)      
+            rsi_20 = am.rsi(20)
+            d['rsi_20'] = rsi_20
             try:
                 d['ma_5'] = am.sma(5)
             except:
@@ -728,8 +730,11 @@ class DataServiceTushare(object):
             cl_index_zz500.replace_one(flt, d, upsert=True)
 
     def zz500_index_in_db(self, date_begin, date_end):
-        df_index_zz500 = self.pro.index_daily(ts_code='000905.SH', start_date=date_begin, end_date=date_end)
-        df_index_zz500.sort_values(by='trade_date', inplace=True)
+        df_index_zz500_k = self.pro.index_daily(ts_code='000905.SH', start_date=date_begin, end_date=date_end)
+        df_index_zz500_k.sort_values(by='trade_date', inplace=True)
+        df_daily_basic = self.pro.index_dailybasic(ts_code='000905.SH', start_date=date_begin, end_date=date_end)
+        del df_daily_basic['ts_code']
+        df_index_zz500 = pd.merge(df_index_zz500_k, df_daily_basic, on='trade_date')
         lst_date = self.get_trade_cal(date_begin, date_end)
         cnt_up_lst = list()
         cnt_down_lst = list()
@@ -773,5 +778,5 @@ if __name__ == "__main__":
     ds_tushare = DataServiceTushare()
     # ds_tushare.build_stock_data(update=True)
     # ds_tushare.zz500_stock_pool_in_db(['2015', '2016', '2017', '2018', '2019', '2020'])
-    # ds_tushare.zz500_stock_pool_in_db(['2019', '2020'])
-    ds_tushare.zz500_index_in_db('20200721', '20200807')
+    ds_tushare.zz500_stock_pool_in_db(['2018', '2019', '2020'])
+    ds_tushare.zz500_index_in_db('20180101', '20200818')
