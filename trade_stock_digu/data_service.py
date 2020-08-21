@@ -727,9 +727,13 @@ class DataServiceTushare(object):
             d['ma_500'] = am.sma(500)
             flt = {'trade_date': d['trade_date']}
             cl_index_zz500 = self.db[CL_INDEX_ZZ500]
-            cl_index_zz500.replace_one(flt, d, upsert=True)
+            cl_index_zz500.replace_one(flt, d, upsert=False)
 
-    def zz500_index_in_db(self, date_begin, date_end):
+    def zz500_index_in_db(self, date_begin, date_end, update=True):
+        """
+        date_begin, date_end的差距应该在500个交易日以上，确保第501条数据的ma500正确，
+        每次更新数据库的时候对于dataframe的500条数据不更新数据库，想要的update=False
+        """
         df_index_zz500_k = self.pro.index_daily(ts_code='000905.SH', start_date=date_begin, end_date=date_end)
         df_index_zz500_k.sort_values(by='trade_date', inplace=True)
         df_daily_basic = self.pro.index_dailybasic(ts_code='000905.SH', start_date=date_begin, end_date=date_end)
@@ -777,6 +781,5 @@ class DataServiceTushare(object):
 if __name__ == "__main__":
     ds_tushare = DataServiceTushare()
     # ds_tushare.build_stock_data(update=True)
-    # ds_tushare.zz500_stock_pool_in_db(['2015', '2016', '2017', '2018', '2019', '2020'])
-    ds_tushare.zz500_stock_pool_in_db(['2018', '2019', '2020'])
-    ds_tushare.zz500_index_in_db('20180101', '20200818')
+    ds_tushare.zz500_stock_pool_in_db(['2015', '2016', '2017', '2018', '2019', '2020'])
+    ds_tushare.zz500_index_in_db('20150101', '20200818')
