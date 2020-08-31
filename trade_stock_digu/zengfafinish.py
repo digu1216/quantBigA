@@ -2,11 +2,11 @@ import pandas as pd
 import numpy as np
 from data_service import DataServiceTushare
 import matplotlib.pyplot as plt
-df = pd.read_csv('D:\\code\\quant_big_a\\data\\zengfafinish20192020.csv')
+df = pd.read_csv('D:\\code\\python\\quant_big_a\\data\\zengfafinish20192020.csv')
 
-df1 = df[df['date_on'] < 20200501]
+df1 = df[df['date_on'] < 20200601]
 pct_high = 0.2  #增发日股票上市价高于增发价比例
-days_n = 80 #跟踪上市日之后N日的表现
+days_n = 60 #跟踪上市日之后N日的表现
 # 计算现金增发完成后的股票表现情况
 # 排除增发成本比上市日股价高出30%以上(pct_high)的股票
 # 增发股票上市日作为基准日：计算收盘最大涨幅（跌幅）平均值和中位数
@@ -34,7 +34,7 @@ for index, row in df1.iterrows():
         lst_close.append(k_data['close'])
         lst_close_pct_chg.append((k_data['close'] - price_base) / price_base) 
         k_data_pre = k_data
-    if np.mean(lst_close_pct_chg) < 0.1:
+    if np.max(lst_close_pct_chg) > 0.50:
         print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
         print(code)
     lst_code_close_pct_chg.append(lst_close_pct_chg)

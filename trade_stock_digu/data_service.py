@@ -93,9 +93,9 @@ class DataServiceTushare(object):
     ts_code: 在程序中采用000001_SZ的格式，调用tushare接口时替换为000001.SZ格式
     """
 
-    # mc = MongoClient(MONGO_HOST, MONGO_PORT)  # Mongo连接
+    mc = MongoClient(MONGO_HOST, MONGO_PORT)  # Mongo连接
     # mc = MongoClient(MONGO_HOST, MONGO_PORT, username=MONGO_USER, password=MONGO_PASSWORD)  # Mongo连接
-    mc = MongoClient("mongodb://124.70.183.208:27017/", username='root', password='qiuqiu78')
+    # mc = MongoClient("mongodb://124.70.183.208:27017/", username='root', password='qiuqiu78')
     db = mc[STOCK_DB_NAME]  # 数据库
     db_vnpy = mc[STOCK_DB_NAME_VNPY]  # 数据库
     count_max_retry = 10
@@ -822,6 +822,6 @@ if __name__ == "__main__":
     ds_tushare = DataServiceTushare()
     # ds_tushare.build_stock_data(update=True)
     ds_tushare.zz500_stock_pool_in_db(['2008', '2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019','2020'])
-    ds_tushare.zz500_index_in_db('20080101', '20200828')
+    ds_tushare.zz500_index_in_db('20080101', '20200831')
     # ds_tushare.zz500_stock_pool_in_db(['2019','2020'])
     # ds_tushare.zz500_index_in_db('20190101', '20200822')
