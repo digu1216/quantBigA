@@ -1,9 +1,11 @@
 from datetime import datetime
 from abc import ABC, abstractmethod
+import sys
+sys.path.append('../')
 
-from logger import Logger
-from convert_utils import string_to_datetime, time_to_str
-from data_service import DataServiceTushare
+from trade_stock_digu.logger import Logger
+from trade_stock_digu.convert_utils import string_to_datetime, time_to_str
+from trade_stock_digu.data_service import DataServiceTushare
 
 class StrategyBase(ABC):
     """

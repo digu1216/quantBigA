@@ -5,7 +5,7 @@
 	"MONGO_PASSWORD": "qiuqiu78",
 	"DB_NAME": "stock_digu",
 	"DB_NAME_VNPY": "stock_vnpy",
-	"DATA_BEGIN_DATE": "20150101",
+	"DATA_BEGIN_DATE": "20190101",
 	"CL_STOCK_K_DATA_VNPY": "db_bar_data",
 	"CL_STOCK_DATE": "stock_date",
 	"CL_STOCK_BASIC": "stock_basic",

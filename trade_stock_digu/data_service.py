@@ -62,12 +62,14 @@ class IndexCode:
     INDEX_SZ = '399001_SZ'
     INDEX_ZX = '399005_SZ'
     INDEX_CY = '399006_SZ'
+    INDEX_ZZ = '000905_SH'
     
     _VALUES_TO_NAMES = {
         '000001_SH': "INDEX_SH",
         '399001_SZ': "INDEX_SZ",
         '399005_SZ': "INDEX_ZX",
         '399006_SZ': "INDEX_CY",
+        '000905_SH': "INDEX_ZZ",
     }
     
     _NAMES_TO_VALUES = {
@@ -75,8 +77,8 @@ class IndexCode:
         "INDEX_SZ": '399001_SZ',
         "INDEX_ZX": '399005_SZ',
         "INDEX_CY": '399006_SZ',
+        "INDEX_ZZ": '000905_SH',
     }
-    
 
 class TsCodeType(Enum):
     """
@@ -91,13 +93,14 @@ class DataServiceTushare(object):
     ts_code: 在程序中采用000001_SZ的格式，调用tushare接口时替换为000001.SZ格式
     """
 
+    # mc = MongoClient(MONGO_HOST, MONGO_PORT)  # Mongo连接
     # mc = MongoClient(MONGO_HOST, MONGO_PORT, username=MONGO_USER, password=MONGO_PASSWORD)  # Mongo连接
     mc = MongoClient("mongodb://124.70.183.208:27017/", username='root', password='qiuqiu78')
     db = mc[STOCK_DB_NAME]  # 数据库
     db_vnpy = mc[STOCK_DB_NAME_VNPY]  # 数据库
     count_max_retry = 10
     second_sleep = 60
-    index_lst = ['000001_SH', '399001_SZ', '399005_SZ', '399006_SZ']       
+    index_lst = ['000001_SH', '399001_SZ', '399005_SZ', '399006_SZ', '000905_SH']       
 
     def __init__(self):
         """Constructor"""        
@@ -117,8 +120,8 @@ class DataServiceTushare(object):
             lst_code.append(d['ts_code'])
         return lst_code
 
-    def get_trade_date(self, trade_date):
-        # 获取当前日期最邻近的一个交易日
+    def get_pre_1_trade_date(self, trade_date):
+        # 获取当前日期前面最邻近的一个交易日
         # 1、如果当前日期就是交易日，则返回当前日期
         # 2、如果当前日期不是交易日，则返回当前日期之前的一个交易日
         cl_cal = self.db[CL_TRADE_CAL]
@@ -126,6 +129,16 @@ class DataServiceTushare(object):
             {'cal_date': {"$lte": trade_date}, 'is_open': 1},
             {'_id': 0}).sort("cal_date"))
         return list(trade_cal)[-1]['cal_date']
+
+    def get_next_1_trade_date(self, trade_date):
+        # 获取当前日期后面最邻近的一个交易日
+        # 1、如果当前日期就是交易日，则返回当前日期
+        # 2、如果当前日期不是交易日，则返回当前日期之后的一个交易日
+        cl_cal = self.db[CL_TRADE_CAL]
+        trade_cal = list(cl_cal.find(
+            {'cal_date': {"$gte": trade_date}, 'is_open': 1},
+            {'_id': 0}).sort("cal_date"))
+        return list(trade_cal)[0]['cal_date']
 
     def _is_in_vnpy_db(self, ts_code, update=True):
         if ts_code in self.index_lst:
@@ -383,7 +396,7 @@ class DataServiceTushare(object):
     def _build_top_list(self):
         # 构建龙虎榜数据                
         LOG.info('构建龙虎榜数据')             
-        date_top_list = self.get_pre_trade_date(self.db_date) if DATA_BEGIN_DATE != self.db_date else self.db_date  # 用前一天和当天的数据更新龙虎榜（防止当天更新db时，龙虎榜tushare接口数据还未生成）
+        date_top_list = self.get_pre_1_trade_date(self.db_date) if DATA_BEGIN_DATE != self.db_date else self.db_date  # 用前一天和当天的数据更新龙虎榜（防止当天更新db时，龙虎榜tushare接口数据还未生成）
         begin_date = '20050101' if date_top_list < '20050101' else date_top_list  # 龙虎榜数据只有2005年之后的数据
         trade_lst = self.get_trade_cal(begin_date)
         for item_date in trade_lst:
@@ -581,7 +594,7 @@ class DataServiceTushare(object):
         LOG.info('当前股票池数据入库')
         cl_stk_pool_cur = self.db[CL_STK_POOL_CUR]
         cl_stk_pool_cur.create_index([('date', ASCENDING), ('ts_code', ASCENDING)])
-        lst_code_pre = self.get_cur_stock_pool_code_lst(self.get_pre_trade_date(date))
+        lst_code_pre = self.get_cur_stock_pool_code_lst(self.get_pre_1_trade_date(date))
         lst_union = list(set(lst_code_pre).union(set(code_lst)))
         for code in lst_union:
             d = {'date': date, 'ts_code': code}
@@ -631,7 +644,7 @@ class DataServiceTushare(object):
     def get_curve_date(self):
         cl_stk_pool_cur = self.db[CL_STK_POOL_CUR]
         ret = cl_stk_pool_cur.find_one(sort=[('date', ASCENDING)])
-        date_end = self.get_trade_date(self.db_date)
+        date_end = self.get_pre_1_trade_date(self.db_date)
         if ret is not None:
             return ret['date'], date_end
         else:
@@ -648,29 +661,40 @@ class DataServiceTushare(object):
         return ret
 
     def zz500_stock_pool_in_db(self, year_lst):
-        def get_begin_end_date_in_month(year):
-            year = int(year)
-            begin_date_lst = list()
-            end_date_lst = list()
-            for x in range(1, 13):
-                dt_start = (datetime(year, x, 1)).strftime("%Y%m%d")
-                if 12 == x:
-                    dt_end = (datetime(year, 12, 31)).strftime("%Y%m%d")
-                else:
-                    dt_end = (datetime(year, x+1, 1) - timedelta(days = 1)).strftime("%Y%m%d")
-                begin_date_lst.append(dt_start)
-                end_date_lst.append(dt_end)
-            return begin_date_lst, end_date_lst
+        # def get_begin_end_date_in_month(year):
+        #     sleep(30)
+        #     year = int(year)
+        #     begin_date_lst = list()
+        #     end_date_lst = list()
+        #     for x in range(1, 13):
+        #         dt_start = (datetime(year, x, 1)).strftime("%Y%m%d")
+        #         if 12 == x:
+        #             dt_end = (datetime(year, 12, 31)).strftime("%Y%m%d")
+        #         else:
+        #             dt_end = (datetime(year, x+1, 1) - timedelta(days = 1)).strftime("%Y%m%d")
+        #         begin_date_lst.append(dt_start)
+        #         end_date_lst.append(dt_end)
+        #     return begin_date_lst, end_date_lst
+        def get_last_trade_date_in_month(year):            
+            sleep(30)
+            lst_ret = list()            
+            for item in range(1,13):
+                md = str(item).zfill(2) + '31'
+                date = self.get_pre_1_trade_date(year + md)
+                if date not in lst_ret:
+                    lst_ret.append(date)
+            return lst_ret
         cl_zz500 = self.db[CL_STK_POOL_ZZ500]
+        cl_zz500.drop() # 更新股票池采用粗暴采用全删再新增操作
         cl_zz500.create_index([('trade_month', ASCENDING), ('ts_code', ASCENDING)], unique=True)
         df_pre = None
         for item in year_lst:
-            begin_date_lst, end_date_lst = get_begin_end_date_in_month(item)
-            for begin, end in zip(begin_date_lst, end_date_lst):
-                df_ret = self.pro.index_weight(index_code='000905.SH', start_date=begin, end_date=end)
+            trade_date_last_lst = get_last_trade_date_in_month(item)
+            for trade_date_last_in_month in trade_date_last_lst:
+                df_ret = self.pro.index_weight(index_code='000905.SH', trade_date=trade_date_last_in_month)
                 if df_ret.empty is True:
                     df_ret = df_pre
-                    df_ret.loc[:, 'trade_date'] = end
+                    df_ret.loc[:, 'trade_date'] = trade_date_last_in_month                    
                 # df_ret.rename(columns={'con_code':'ts_code'}, inplace = True)
                 df_ret.loc[:, 'index_code'] = df_ret.loc[:, 'index_code'].apply(lambda x : x.replace('.', '_'))
                 df_ret.loc[:, 'ts_code'] = df_ret.loc[:, 'con_code'].apply(lambda x : x.replace('.', '_'))
@@ -695,8 +719,8 @@ class DataServiceTushare(object):
         """
         am = ArrayManager(size=600)   
         for ix, row in df.iterrows():
-            d = row.to_dict()     
-            print(d['trade_date'])         
+            d = row.to_dict()
+            LOG.info(d['trade_date'])   
             d['ts_code'] = d['ts_code'].replace('.', '_')
             bar = BarData(
                     gateway_name='ctp', symbol=d['ts_code'],
@@ -727,12 +751,15 @@ class DataServiceTushare(object):
             d['ma_500'] = am.sma(500)
             flt = {'trade_date': d['trade_date']}
             cl_index_zz500 = self.db[CL_INDEX_ZZ500]
-            cl_index_zz500.replace_one(flt, d, upsert=False)
+            # cl_index_zz500.replace_one(flt, d, upsert=False)
+            cl_index_zz500.update_one(flt, {'$setOnInsert': d}, upsert=True)   # 插入数据时,flt不存在则插入d,存在则不执行
+            
+            
 
-    def zz500_index_in_db(self, date_begin, date_end, update=True):
+    def zz500_index_in_db(self, date_begin, date_end):
         """
         date_begin, date_end的差距应该在500个交易日以上，确保第501条数据的ma500正确，
-        每次更新数据库的时候对于dataframe的500条数据不更新数据库，想要的update=False
+        每次更新数据库的时候对于dataframe的500条数据不更新数据库，相应的update=False
         """
         df_index_zz500_k = self.pro.index_daily(ts_code='000905.SH', start_date=date_begin, end_date=date_end)
         df_index_zz500_k.sort_values(by='trade_date', inplace=True)
@@ -744,8 +771,8 @@ class DataServiceTushare(object):
         cnt_down_lst = list()
         cnt_ma60_up_lst = list()
         cnt_ma60_down_lst = list()
-        for item_date in lst_date:
-            print(item_date)
+        for item_date in lst_date:            
+            LOG.info(item_date)             
             cnt_up = 0
             cnt_down = 0
             cnt_ma60_up = 0
@@ -777,9 +804,24 @@ class DataServiceTushare(object):
         df_index_zz500.loc[:, 'stk_cnt_ma60_down'] = col_ma60_down
         self.compute_index_zz500_specifications(df_index_zz500)
 
+    def get_top_list_by_date(self, trade_date):        
+        cl_top_list = self.db[CL_STK_TOP_LIST]
+        ret_lst = list()
+        top_list = list(cl_top_list.find({'trade_date': trade_date}, {'_id': 0}))
+        for item in top_list:
+            ret_lst.append(item)
+        return ret_lst
+
+    def get_zz500(self, ts_code, trade_date):
+        cl_index_zz500 = self.db[CL_INDEX_ZZ500]        
+        ret = cl_index_zz500.find_one({'ts_code': ts_code, 'trade_date': trade_date}, {'_id': 0})        
+        return ret
+        	
 
 if __name__ == "__main__":
     ds_tushare = DataServiceTushare()
     # ds_tushare.build_stock_data(update=True)
-    ds_tushare.zz500_stock_pool_in_db(['2015', '2016', '2017', '2018', '2019', '2020'])
-    ds_tushare.zz500_index_in_db('20150101', '20200818')
+    ds_tushare.zz500_stock_pool_in_db(['2008', '2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019','2020'])
+    ds_tushare.zz500_index_in_db('20080101', '20200828')
+    # ds_tushare.zz500_stock_pool_in_db(['2019','2020'])
+    # ds_tushare.zz500_index_in_db('20190101', '20200822')
