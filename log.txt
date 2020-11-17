@@ -30392,3 +30392,33 @@
 2020-11-15 12:27:37,876 - INFO - data_service.py             - 412 :  构建龙虎榜数据完成
 2020-11-15 12:27:37,877 - INFO - data_service.py             - 358 :  构建股票日K线数据
 2020-11-15 15:24:31,940 - INFO - data_service.py             - 382 :  构建股票日K线数据完成，耗时2.948350486755371小时
+2020-11-16 22:09:12,847 - INFO - data_service.py             - 342 :  构建交易日日历数据
+2020-11-16 22:09:16,604 - INFO - data_service.py             - 351 :  构建交易日日历数据完成
+2020-11-16 22:09:16,604 - INFO - data_service.py             - 415 :  构建股票基础信息
+2020-11-16 22:09:19,249 - INFO - data_service.py             - 426 :  构建股票基础信息完成
+2020-11-16 22:09:19,250 - INFO - data_service.py             - 385 :  构建指数K线数据
+2020-11-16 22:09:20,201 - INFO - data_service.py             - 394 :  构建指数K线数据完成
+2020-11-16 22:09:20,201 - INFO - data_service.py             - 398 :  构建龙虎榜数据
+2020-11-16 22:09:29,294 - INFO - data_service.py             - 412 :  构建龙虎榜数据完成
+2020-11-16 22:09:29,295 - INFO - data_service.py             - 358 :  构建股票日K线数据
+2020-11-16 22:44:53,691 - INFO - data_service.py             - 382 :  构建股票日K线数据完成，耗时0.5901096975803375小时
+2020-11-17 00:19:47,824 - INFO - strategy_top_list.py             - 38 :  None stock basic info 000939_SZ
+2020-11-17 00:22:29,855 - INFO - strategy_top_list.py             - 38 :  None stock basic info 000939_SZ
+2020-11-17 00:22:37,844 - INFO - strategy_top_list.py             - 38 :  None stock basic info 000939_SZ
+2020-11-17 00:26:44,870 - INFO - strategy_top_list.py             - 38 :  None stock basic info 000939_SZ
+2020-11-17 00:27:53,248 - INFO - strategy_top_list.py             - 38 :  None stock basic info 000939_SZ
+2020-11-17 00:28:40,141 - INFO - strategy_top_list.py             - 38 :  None stock basic info 000939_SZ
+2020-11-17 00:28:40,156 - INFO - strategy_top_list.py             - 38 :  None stock basic info 300431_SZ
+2020-11-18 01:12:21,297 - INFO - data_service.py             - 342 :  构建交易日日历数据
+2020-11-18 01:12:25,041 - INFO - data_service.py             - 351 :  构建交易日日历数据完成
+2020-11-18 01:12:25,042 - INFO - data_service.py             - 415 :  构建股票基础信息
+2020-11-18 01:12:27,290 - INFO - data_service.py             - 426 :  构建股票基础信息完成
+2020-11-18 01:12:27,290 - INFO - data_service.py             - 385 :  构建指数K线数据
+2020-11-18 01:12:27,987 - INFO - data_service.py             - 394 :  构建指数K线数据完成
+2020-11-18 01:12:27,988 - INFO - data_service.py             - 398 :  构建龙虎榜数据
+2020-11-18 01:12:37,626 - INFO - data_service.py             - 412 :  构建龙虎榜数据完成
+2020-11-18 01:12:37,628 - INFO - data_service.py             - 358 :  构建股票日K线数据
+2020-11-18 01:28:05,241 - INFO - data_service.py             - 466 :  (300909.SZ)调用tushare ts.pro_bar失败，空数据
+2020-11-18 01:38:03,836 - INFO - data_service.py             - 466 :  (688219.SH)调用tushare ts.pro_bar失败，空数据
+2020-11-18 01:38:34,939 - INFO - data_service.py             - 382 :  构建股票日K线数据完成，耗时0.4325858298275206小时
+2020-11-18 01:49:16,522 - INFO - strategy_top_list.py             - 38 :  None stock basic info 000939_SZ
