@@ -19,10 +19,9 @@ class StrategyTopList(StrategyBase):
 
     待补充：
     """
-    pct_buy = 20    # 某日净买入占成交百分比 db:net_rate
-    pct_retracement = 0.1    # 股价回调百分比
+    pct_buy = 15    # 某日净买入占成交百分比 db:net_rate    
     n_years = 2     # 上市时间超过n_years年     
-    max_times_in_year = 4   #股票年内最大涨幅 high_250/low_250    
+    # max_times_in_year = 4   #股票年内最大涨幅 high_250/low_250    
     
     ds_tushare = DataServiceTushare()        
     def __init__(self):
@@ -81,7 +80,7 @@ class StrategyTopList(StrategyBase):
 
 if __name__ == "__main__":    
     strategy = StrategyTopList()
-    ret_lst = strategy.pick_stock('20201117')
+    ret_lst = strategy.pick_stock('20201224')
     print(set(ret_lst))
     # lst_trade_date = ds_tushare.get_trade_cal('20200101', '20200701')
     # cnt_loop = 0

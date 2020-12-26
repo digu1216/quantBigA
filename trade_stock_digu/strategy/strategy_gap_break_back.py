@@ -36,7 +36,7 @@ class StrategyGapBreakBack(StrategyBase):
     def pick_stock(self, date_picked):            
         ds_tushare = DataServiceTushare()        
         lst_code_picked = list()
-        for ts_code in ds_tushare.get_stock_list():
+        for ts_code in ds_tushare.get_stock_lst():
             stock_basic = ds_tushare.get_stock_basic_info(ts_code)
             if stock_basic is None:
                 self.logger.info('None stock basic info %s' %ts_code)

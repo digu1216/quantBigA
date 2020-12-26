@@ -26,7 +26,7 @@ class StrategyGapBreak(StrategyBase):
     def pick_stock(self, date_picked):            
         ds_tushare = DataServiceTushare()        
         lst_code_picked = list()
-        for ts_code in ds_tushare.get_stock_list():
+        for ts_code in ds_tushare.get_stock_lst():
             stock_basic = ds_tushare.get_stock_basic_info(ts_code)
             if stock_basic is None:
                 self.logger.info('None stock basic info %s' %ts_code)
@@ -48,16 +48,17 @@ class StrategyGapBreak(StrategyBase):
                         dic_stock_price['ma_120'] > dic_stock_price['ma_250'] and \
                         dic_stock_price['ma_250'] > dic_stock_price['ma_500']:
                     price_date_picked = ds_tushare.get_stock_price_info(ts_code, date_picked)
+                    price_date_picked_pre_day = ds_tushare.get_stock_price_info(ts_code, ds_tushare.get_pre_trade_date(date_picked))                    
                     if dic_stock_price['ts_code'] == '000998_SZ':
                         a = 1
                     # 选出当日长阳突破新高的股票 当日收盘价==high_days_break 
                     # 当日涨幅>5%
                     if price_date_picked['high'] == price_date_picked[days_break_high] \
-                        and price_date_picked['pct_chg'] > 8.0:
+                        and price_date_picked['pct_chg'] > 6.0:
                         lst_code_picked.append(dic_stock_price['ts_code'])  
                     
-                    # 选出已经成功突破之后缺口加速的股票
-                    # if price_date_picked['low'] > price_date_picked[days_break_high]:
+                    # # 选出已经成功突破之后缺口加速的股票
+                    # if price_date_picked['low'] > price_date_picked_pre_day[days_break_high]:
                     #     lst_code_picked.append(dic_stock_price['ts_code'])                                
             except:
                 self.logger.info('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
@@ -68,7 +69,7 @@ class StrategyGapBreak(StrategyBase):
 if __name__ == "__main__":
     ds_tushare = DataServiceTushare()
     strategy = StrategyGapBreak()
-    print(strategy.pick_stock('20201105'))
+    print(strategy.pick_stock('20201224'))
     # lst_trade_date = ds_tushare.get_trade_cal('20200101', '20200701')
     # cnt_loop = 0
     # for item_date in lst_trade_date:

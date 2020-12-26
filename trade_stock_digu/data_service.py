@@ -54,6 +54,7 @@ CL_STK_POOL_CUR = setting['CL_STK_POOL_CUR']
 CL_STK_TOP_LIST = setting['CL_STK_TOP_LIST']
 CL_STK_POOL_ZZ500 = setting['CL_STK_POOL_ZZ500']
 CL_INDEX_ZZ500 = setting['CL_INDEX_ZZ500']
+CL_SHORT_8_PCT = setting['CL_SHORT_8_PCT']
 
 LOG = Logger().getlog()
 
@@ -111,7 +112,7 @@ class DataServiceTushare(object):
         ts.set_token('4c1d16a895e4c954adc8d2a436f2b21dd4ccc514f0c5a192edaa953b')
         self.pro = ts.pro_api()
 
-    def get_stock_list(self):
+    def get_stock_lst(self):
         lst_code = list()
         cl_stock_basic = self.db[CL_STOCK_BASIC]
         stock_basic_lst = list(cl_stock_basic.find(
@@ -119,6 +120,13 @@ class DataServiceTushare(object):
         for d in stock_basic_lst:  
             lst_code.append(d['ts_code'])
         return lst_code
+
+    def get_stock_basic_lst(self):
+        lst_stock_basic = list()
+        cl_stock_basic = self.db[CL_STOCK_BASIC]
+        lst_stock_basic = list(cl_stock_basic.find(
+            {}, {'_id': 0}).sort("ts_code", ASCENDING))
+        return lst_stock_basic
 
     def get_pre_1_trade_date(self, trade_date):
         # 获取当前日期前面最邻近的一个交易日
@@ -374,7 +382,7 @@ class DataServiceTushare(object):
                     self._init_k_data(d['ts_code'], df_stock_info)
         # 数据更新时间
         cl_stock_db_date = self.db[CL_STOCK_DATE]
-        db_date = {'db_date': self.date_now}
+        db_date = {'db_date': self.get_pre_1_trade_date(self.date_now)}        
         flt_date = {'db_date': self.db_date}
         cl_stock_db_date.replace_one(flt_date, db_date, upsert=True)
         end = time()
@@ -817,11 +825,127 @@ class DataServiceTushare(object):
         ret = cl_index_zz500.find_one({'ts_code': ts_code, 'trade_date': trade_date}, {'_id': 0})        
         return ret
         	
-
+    def data2db_short_8_pct(self, date_begin=DATA_BEGIN_DATE, date_end=None):
+        # 择时短线1:
+        # X:
+        #   1、收盘后涨跌8%以上个股比例
+        #      上涨8%股票数：股票总数
+        #      下跌8%股票数：股票总数
+        #      上涨8%股票数：下跌8%股票数
+        #   2、收盘后昨日涨8%股票今日表现: 平均涨幅
+        #   3、收盘后昨日跌8%股票今日表现: 平均涨幅
+        #   4、收盘后昨日振幅12%股票今日表现: 平均涨幅
+        # Y:
+        #   所有股票(或ma5以上多头排列股票)涨幅中位数
+        # 注：
+        #   排除上市2年以内的新股
+        if date_end is None:
+            date_end = self.db_date
+        lst_date = self.get_trade_cal(date_begin, date_end)
+        lst_stock_yesterday_bull = list()
+        lst_stock_yesterday_bear = list()
+        lst_stock_yesterday_shocked = list()
+        lst_stock_yesterday_picked = list()
+        lst_stock_today_bull = list()
+        lst_stock_today_bear = list()
+        lst_stock_today_bull_5 = list()
+        lst_stock_today_bear_5 = list()
+        lst_stock_today_shocked = list()   
+        lst_stock_today_picked = list()     
+        for item_date in lst_date:
+            lst_stock_yesterday_bull = lst_stock_today_bull.copy()
+            lst_stock_yesterday_bear = lst_stock_today_bear.copy()
+            lst_stock_yesterday_shocked = lst_stock_today_shocked.copy()
+            lst_stock_yesterday_picked = lst_stock_today_picked.copy()
+            lst_stock_today_bull.clear()
+            lst_stock_today_bear.clear()
+            lst_stock_today_bull_5.clear()
+            lst_stock_today_bear_5.clear()
+            lst_stock_today_shocked.clear()
+            lst_stock_today_picked.clear()
+            lst_pct_chg_yes_bull = list()
+            lst_pct_chg_yes_bear = list()
+            lst_pct_chg_yes_shocked = list()
+            lst_pct_chg_y = list()       
+            lst_pct_chg_y_bull = list()     
+            cnt_stock = 0   # 当日交易股票数目      
+            lst_stock = self.get_stock_basic_lst()
+            for item_stock in lst_stock:
+                dt_date = string_to_datetime(item_date)                
+                if item_stock['list_date'] > time_to_str(dt_date+timedelta(days=-365 * 2), '%Y%m%d'):
+                    # 排除上市时间小于2年股票
+                    continue                
+                price_info = self.get_stock_price_info(item_stock['ts_code'], item_date)
+                if price_info is None or price_info['pre_close']==0:
+                    continue
+                cnt_stock += 1               
+                if price_info['pct_chg'] > 8:
+                    lst_stock_today_bull.append(item_stock['ts_code'])
+                if price_info['pct_chg'] < -8:
+                    lst_stock_today_bear.append(item_stock['ts_code'])
+                if price_info['pct_chg'] > 5:
+                    lst_stock_today_bull_5.append(item_stock['ts_code'])
+                if price_info['pct_chg'] < -5:
+                    lst_stock_today_bear_5.append(item_stock['ts_code'])
+                if (price_info['high'] - price_info['low'])*100/price_info['pre_close'] > 12:
+                    lst_stock_today_shocked.append(item_stock['ts_code'])
+                lst_pct_chg_y.append(price_info['pct_chg'])
+                if price_info['high_250'] == price_info['high_5'] \
+                    and price_info['ma_250'] < price_info['ma_120'] \
+                        and price_info['ma_120'] < price_info['ma_60'] \
+                            and price_info['ma_60'] < price_info['ma_20']:
+                    lst_stock_today_picked.append(price_info['ts_code'])
+                for item_stock['ts_code'] in lst_stock_yesterday_picked:                    
+                    lst_pct_chg_y_bull.append(price_info['pct_chg'])
+                for item_yes_bull in lst_stock_yesterday_bull:
+                    price_info_yes_bull = self.get_stock_price_info(item_yes_bull, item_date)
+                    if price_info_yes_bull is None:
+                        continue
+                    lst_pct_chg_yes_bull.append(price_info_yes_bull['pct_chg'])
+                for item_yes_bear in lst_stock_yesterday_bear:
+                    price_info_yes_bear = self.get_stock_price_info(item_yes_bear, item_date)
+                    if price_info_yes_bear is None:
+                        continue
+                    lst_pct_chg_yes_bear.append(price_info_yes_bear['pct_chg'])
+                for item_yes_shocked in lst_stock_yesterday_shocked:
+                    price_info_yes_shocked = self.get_stock_price_info(item_yes_shocked, item_date)
+                    if price_info_yes_shocked is None:
+                        continue
+                    lst_pct_chg_yes_shocked.append(price_info_yes_shocked['pct_chg'])          
+            # print(item_date)
+            # print(lst_stock_yesterday_bull)
+            # print(lst_stock_yesterday_bull)
+            # print(lst_stock_yesterday_shocked)
+            # print(lst_stock_today_bull)
+            # print(lst_stock_today_bear)
+            # print(lst_stock_today_shocked)   
+            d = dict()
+            d['cnt_stock'] = cnt_stock
+            d['cnt_stock_bull'] = len(lst_stock_today_bull)
+            d['cnt_stock_bear'] = len(lst_stock_today_bear)
+            d['cnt_stock_bull_5'] = len(lst_stock_today_bull_5)
+            d['cnt_stock_bear_5'] = len(lst_stock_today_bear_5)
+            d['pct_chg_yes_bull_mean'] = np.mean(lst_pct_chg_yes_bull) if len(lst_pct_chg_yes_bull) != 0 else 0.0
+            d['pct_chg_yes_bear_mean'] = np.mean(lst_pct_chg_yes_bear) if len(lst_pct_chg_yes_bear) != 0 else 0.0
+            d['pct_chg_yes_shocked_mean'] = np.mean(lst_pct_chg_yes_shocked) if len(lst_pct_chg_yes_shocked) != 0 else 0.0
+            d['pcg_chg_median'] = np.median(lst_pct_chg_y) if len(lst_pct_chg_y) != 0 else 0.0
+            d['pcg_chg_10'] = np.percentile(lst_pct_chg_y, 10) if len(lst_pct_chg_y) != 0 else 0.0            
+            d['pcg_chg_20'] = np.percentile(lst_pct_chg_y, 20) if len(lst_pct_chg_y) != 0 else 0.0            
+            d['pcg_chg_30'] = np.percentile(lst_pct_chg_y, 30) if len(lst_pct_chg_y) != 0 else 0.0            
+            d['pcg_chg_70'] = np.percentile(lst_pct_chg_y, 70) if len(lst_pct_chg_y) != 0 else 0.0            
+            d['pcg_chg_80'] = np.percentile(lst_pct_chg_y, 80) if len(lst_pct_chg_y) != 0 else 0.0            
+            d['pcg_chg_90'] = np.percentile(lst_pct_chg_y, 90) if len(lst_pct_chg_y) != 0 else 0.0                        
+            d['pcg_chg_median_bull'] = np.median(lst_pct_chg_y_bull) if len(lst_pct_chg_y_bull) != 0 else 0.0
+            d['pcg_chg_mean_bull'] = np.mean(lst_pct_chg_y_bull) if len(lst_pct_chg_y_bull) != 0 else 0.0
+            flt = {'trade_date': item_date}
+            cl_short_8_pct = self.db[CL_SHORT_8_PCT]            
+            cl_short_8_pct.update_one(flt, {'$setOnInsert': d}, upsert=True)   # 插入数据时,flt不存在则插入d,存在则不执行
+                
 if __name__ == "__main__":
     ds_tushare = DataServiceTushare()
     # ds_tushare.build_stock_data(update=True)
-    ds_tushare.zz500_stock_pool_in_db(['2008', '2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019','2020'])
-    ds_tushare.zz500_index_in_db('20080101', '20200831')
+    ds_tushare.data2db_short_8_pct('20201101')
+    # ds_tushare.zz500_stock_pool_in_db(['2008', '2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019','2020'])
+    # ds_tushare.zz500_index_in_db('20080101', '20200831')
     # ds_tushare.zz500_stock_pool_in_db(['2019','2020'])
     # ds_tushare.zz500_index_in_db('20190101', '20200822')

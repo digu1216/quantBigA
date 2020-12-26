@@ -5,7 +5,7 @@
 	"MONGO_PASSWORD": "qiuqiu78",
 	"DB_NAME": "stock_digu",
 	"DB_NAME_VNPY": "stock_vnpy",
-	"DATA_BEGIN_DATE": "20000101",
+	"DATA_BEGIN_DATE": "20180101",
 	"CL_STOCK_K_DATA_VNPY": "db_bar_data",
 	"CL_STOCK_DATE": "stock_date",
 	"CL_STOCK_BASIC": "stock_basic",
@@ -21,6 +21,7 @@
 	"CL_STK_POOL_CUR": "stk_pool_cur",
 	"CL_STK_POOL_ZZ500": "stk_pool_zz500",
 	"CL_INDEX_ZZ500": "index_zz500",
+	"CL_SHORT_8_PCT": "short_8_pct",
 	"SYMBOLS": ["000001.SH", "399001.SZ", "399005.SZ", "399006.SZ"],
 	"CL_INDEXS": ["000001.SH", "399001.SZ", "399005.SZ", "399006.SZ"]
 }
