@@ -1,0 +1,43 @@
+Inputs:
+	data_series1(Close of data1), data_series2(Close of data2),
+	length1(20), thrust_th(12);
+
+Variables:
+	diff(0), ma1(0), bias(0), add_pos_cnt(0);
+
+diff = data_series1 - data_series2;
+ma1 = AverageFC(diff, length1);
+bias = diff - ma1;
+
+// clear all positions, if applicable
+if marketposition = 1 then begin
+	if bias cross over 0 then sell next bar at market;
+	add_pos_cnt = 0;
+end;
+
+if marketposition = -1 then begin
+	if bias cross under 0 then buytocover next bar at market;
+	add_pos_cnt = 0;
+end;
+
+// add long positions, if applicable
+if add_pos_cnt = 0 and bias cross over thrust_th then begin
+	sellshort next bar at market;
+	add_pos_cnt += 1;
+end;
+
+if add_pos_cnt = 1 and bias cross over 2*thrust_th then begin
+	sellshort next bar at market;
+	add_pos_cnt += 1;
+end;
+
+// add short positions, if applicable
+if add_pos_cnt = 0 and bias cross under -thrust_th then begin
+	buy next bar at market;
+	add_pos_cnt += 1;
+end;
+
+if add_pos_cnt = 1 and bias cross under -2*thrust_th then begin
+	buy next bar at market;
+	add_pos_cnt += 1;
+end;

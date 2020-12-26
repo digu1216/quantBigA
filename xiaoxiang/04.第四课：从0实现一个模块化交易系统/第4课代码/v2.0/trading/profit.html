@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>净值曲线</title>
+    <script src="echarts.min.js"></script>
+    <style>
+        .trading {
+            width:500px;
+            height:500px;
+            border: 1px solid #CECECE;
+            overflow:auto;
+            padding-left: 5px;
+        }
+    </style>
+</head>
+<body style="display:flex;justify-content:center;">
+<div style="width:90%;margin-top:50px;display:flex;justify-content:center;flex-direction:row;flex-wrap:wrap;">
+    选择日志<input type="file" id="log">
+    <div id="profit-chart" style="width:85%;height:500px;min-width:800px;flex-shrink:0;">
+    </div>
+    <div id="buyin-div" class="trading">
+    </div>
+    <div id="sellout-div"  class="trading" style="margin-left:20px;">
+    </div>
+</div>
+
+<script>
+        var profitChart = echarts.init(document.getElementById('profit-chart'));
+
+        var logFile = document.getElementById('log');
+        logFile.onchange = function(){
+            var fr = new FileReader();
+            fr.readAsText(this.files[0]);
+            fr.onload = function(){
+                var lines = this.result.split('\n');
+
+                var dates = [], profits = [], hs300 = [];
+
+                var buyIn = {}, sellOut = {};
+
+                var processing = false;
+                var date;
+                for(var index = 0; index < lines.length; index += 1) {
+                    var line = lines[index];
+                    if(!processing && line === 'Profit history start') {
+                        processing = true;
+                    } else if(processing && line === 'Profit history end') {
+                        break;
+                    } else if(processing) {
+                       // 解析收益曲线的值
+                       var fields = line.split(',');
+                       dates.push(fields[0]);
+                       profits.push(parseFloat(fields[1]));
+                       hs300.push(parseFloat(fields[2]));
+                    } else {
+                       // 保存买入和卖出记录
+                       if(line.indexOf('Backtest at') == 0) {
+                          date = line.substring(12, 22);
+                          buyIn[date] = [];
+                          sellOut[date] = [];
+                       } else if(line.indexOf('买入 ') === 0) {
+                          buyIn[date].push(line);
+                       } else if(line.indexOf('卖出 ') === 0) {
+                          sellOut[date].push(line);
+                       }
+                    }
+                }
+
+                var option = {
+                    title: {
+                        text: '收益曲线',
+                        left: 'center',
+                    },
+                    tooltip: {
+                        trigger: 'axis'
+                    },
+                    legend: {
+                        data:['策略收益', '基准收益（沪深300）'],
+                        left: 'right'
+                    },
+                    xAxis: {
+                        data: dates
+                    },
+                    yAxis: {name:'收益(%)'},
+                    series: [{
+                        name: '策略收益',
+                        type: 'line',
+                        data: profits
+                    },{
+                        name: '基准收益（沪深300）',
+                        type: 'line',
+                        data: hs300
+                    }]
+                };
+
+                // 使用刚指定的配置项和数据显示图表。
+                profitChart.setOption(option);
+
+                var buyInArea = document.getElementById('buyin-div');
+                var sellOutArea = document.getElementById('sellout-div');
+                profitChart.on('click', function(params){
+                   // 显示买入记录
+                   var buyIns = buyIn[params.name];
+                   var buyInHtml = '';
+                   for(var index = 0; index < buyIns.length; index += 1){
+                       buyInHtml += '<p>' + buyIns[index] + '</p>';
+                   }
+
+                   buyInArea.innerHTML = buyInHtml;
+
+                   // 显示卖出记录
+                   var sellOuts = sellOut[params.name];
+                   var sellOutHtml = '';
+                   for(var index = 0; index < sellOuts.length; index += 1){
+                       sellOutHtml += '<p>' + sellOuts[index] + '</p>';
+                   }
+
+                   sellOutArea.innerHTML = sellOutHtml;
+                });
+
+            }
+        };
+
+
+
+</script>
+</body>
+
+</html>

@@ -1,0 +1,101 @@
+//------------------------------------------------------------------------
+// 简称: Formula1
+// 名称: 海龟交易法
+// 类别: 公式应用
+// 类型: 用户应用
+// 输出: Void
+//------------------------------------------------------------------------
+Params
+    Numeric RiskRatio(1);  // 1% risk ratio
+    Numeric ATRLength(20); // ATR window size
+    Numeric boLength(20);  // breakout
+    Numeric teLength(10);  // trailing exit
+Vars
+    Numeric N;
+    NumericSeries AvgTR;
+    Numeric TotalEquity;
+    Numeric TurtleUnits;
+    NumericSeries DonchianHi;
+    NumericSeries DonchianLo;
+    Numeric MinPoint;
+    Numeric ExitLowestPrice;
+    Numeric ExitHighestPrice;
+    Numeric myEntryPrice;
+    Numeric myExitPrice;
+Begin
+    if (!CallAuctionFilter()) return;
+
+    MinPoint = MinMove * PriceScale;
+    AvgTR = XAverage(TrueRange, ATRLength);
+    N = AvgTR[1];
+    // PlotNumeric("N", N);
+    TotalEquity = Portfolio_CurrentCapital() + Portfolio_UsedMargin();
+    TurtleUnits = (TotalEquity*RiskRatio/100) / (N*ContractUnit()*BigPointValue());
+    TurtleUnits = IntPart(TurtleUnits);
+    // PlotNumeric("TurtleUnits", TurtleUnits);
+
+    DonchianHi = HighestFC(High[1], boLength);
+    DonchianLo = LowestFC(Low[1], boLength);
+    // PlotNumeric("Entry_Hi", DonchianHi);
+    // PlotNumeric("Entry_Lo", DonchianLo);
+
+    ExitLowestPrice = LowestFC(Low[1], teLength);
+    ExitHighestPrice = HighestFC(High[1], teLength);
+
+    if (MarketPosition == 0)
+    {
+        // 多头开仓
+        if (high > DonchianHi && TurtleUnits >= 1)
+        {
+            myEntryPrice = min(high, DonchianHi+MinPoint);
+            myEntryPrice = IIF(myEntryPrice < Open, Open, myEntryPrice);  // 应对跳空情况
+            Buy(TurtleUnits, myEntryPrice);
+        }
+        // 空头开仓
+        if (Low < DonchianLo && TurtleUnits >= 1)
+        {
+            myEntryPrice = max(low, DonchianLo-MinPoint);
+            myEntryPrice = IIF(myEntryPrice > Open, Open, myEntryPrice);  // 应对跳空情况
+            SellShort(TurtleUnits, myEntryPrice);
+        }
+    }
+
+    if (MarketPosition == 1)
+    {
+        if (Low < ExitLowestPrice)
+        {
+            // 多头退出
+            myExitPrice = max(Low, ExitLowestPrice-MinPoint);
+            myExitPrice = IIF(myExitPrice > Open, Open, myExitPrice); // 应对跳空情况
+            Sell(0, myExitPrice);
+        }
+        else
+        {
+            // 多头加仓逻辑...
+            // 多头止损逻辑...
+        }
+    }
+    else if (MarketPosition == -1)
+    {
+        if (High > ExitHighestPrice)
+        {
+            // 空头退出
+            myExitPrice = min(High, ExitHighestPrice+MinPoint);
+            myExitPrice = IIF(myExitPrice < Open, Open, myExitPrice); // 应对跳空情况
+            BuyToCover(0, myExitPrice);
+        }
+        else
+        {
+            // 空头加仓逻辑...
+            // 空头止损逻辑...
+        }
+    }
+End
+
+//------------------------------------------------------------------------
+// 编译版本: 2018/06/27 124605
+// 内核版本: V2.7.2.14
+// 版权所有: Void
+// 更改声明: TradeBlazer Software保留对TradeBlazer平台
+//           每一版本的TradeBlazer公式修改和重写的权利
+//------------------------------------------------------------------------

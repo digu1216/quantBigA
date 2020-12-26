@@ -1,0 +1,14 @@
+Inputs:
+	data_series1(Close of data1), data_series2(Close of data2),
+	upper_threshold(300), lower_threshold(10);
+
+Variables:
+	diff(0), slo(0);
+
+diff = data_series1 - data_series2;
+slo = lower_threshold + (upper_threshold-lower_threshold)/2;
+
+Plot1(diff, "spread_diff");
+Plot2(upper_threshold, "upper_th");
+Plot3(lower_threshold, "lower_th");
+Plot4(slo, "slo_th");

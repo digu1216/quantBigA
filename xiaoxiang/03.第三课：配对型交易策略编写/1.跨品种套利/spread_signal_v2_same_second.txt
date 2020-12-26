@@ -1,0 +1,27 @@
+Inputs:
+	data_series1(Close of data1), data_series2(Close of data2),
+	Length(20), NumDevs(2);
+
+Variables:
+	diff(0), boll_mid(0), boll_upr(0), boll_lwr(0);
+
+diff = data_series1 - data_series2;
+
+boll_mid = AverageFC(diff, Length);
+value1 = StandardDev(diff, Length, 1);
+boll_upr = boll_mid + NumDevs * value1;
+boll_lwr = boll_mid - NumDevs * value1;
+
+if marketposition = 0 then begin
+	if diff cross under boll_upr then sellshort next bar at market;
+	if diff cross over boll_lwr then buy next bar at market;
+end;
+
+if marketposition = 1 then
+	if diff cross over boll_mid then sell next bar at market;
+
+if marketposition = -1 then
+	if diff cross under boll_mid then buytocover next bar at market;
+
+SetStopContract;
+SetDollarTrailing(200);

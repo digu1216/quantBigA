@@ -1,0 +1,18 @@
+Inputs:
+	data_series1(Close of data1), data_series2(Close of data2),
+	Length(20), NumDevs(2);
+
+Variables:
+	diff(0), boll_mid(0), boll_upr(0), boll_lwr(0);
+
+diff = data_series1 - data_series2;
+
+boll_mid = AverageFC(diff, Length);
+value1 = StandardDev(diff, Length, 1);
+boll_upr = boll_mid + NumDevs * value1;
+boll_lwr = boll_mid - NumDevs * value1;
+
+Plot1(diff, "spread_diff");
+Plot2(boll_mid, "boll_mid");
+Plot3(boll_upr, "boll_upr");
+Plot4(boll_lwr, "boll_lwr");
