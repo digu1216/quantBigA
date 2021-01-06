@@ -69,7 +69,7 @@ class StrategyGapBreak(StrategyBase):
 if __name__ == "__main__":
     ds_tushare = DataServiceTushare()
     strategy = StrategyGapBreak()
-    print(strategy.pick_stock('20201224'))
+    print(strategy.pick_stock('20210106'))
     # lst_trade_date = ds_tushare.get_trade_cal('20200101', '20200701')
     # cnt_loop = 0
     # for item_date in lst_trade_date:
