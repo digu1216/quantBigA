@@ -80,7 +80,7 @@ class StrategyTopList(StrategyBase):
 
 if __name__ == "__main__":    
     strategy = StrategyTopList()
-    ret_lst = strategy.pick_stock('20210106')
+    ret_lst = strategy.pick_stock('20210623')
     print(set(ret_lst))
     # lst_trade_date = ds_tushare.get_trade_cal('20200101', '20200701')
     # cnt_loop = 0
