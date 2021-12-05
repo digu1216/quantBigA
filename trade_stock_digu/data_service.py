@@ -362,7 +362,7 @@ class DataServiceTushare(object):
         self._build_trade_cal()
         self._build_basic()        
         self._build_index(update)
-        self._build_top_list()        
+        # self._build_top_list()        
         LOG.info('构建股票日K线数据')
         start = time()
         cl_stock_basic = self.db[CL_STOCK_BASIC]

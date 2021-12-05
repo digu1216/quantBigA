@@ -53,13 +53,13 @@ class StrategyGapBreak(StrategyBase):
                         a = 1
                     # # 选出当日长阳突破新高的股票 当日收盘价==high_days_break 
                     # 当日涨幅>8%
-                    if price_date_picked['high'] == price_date_picked[days_break_high] \
-                        and price_date_picked['pct_chg'] > 8.0:
-                        lst_code_picked.append(dic_stock_price['ts_code'])  
+                    # if price_date_picked['high'] == price_date_picked[days_break_high] \
+                    #     and price_date_picked['pct_chg'] > 8.0:
+                    #     lst_code_picked.append(dic_stock_price['ts_code'])  
                     
                     # # 选出已经成功突破之后缺口加速的股票
-                    # if price_date_picked['low'] > price_date_picked_pre_day[days_break_high]:
-                    #     lst_code_picked.append(dic_stock_price['ts_code'])                                
+                    if price_date_picked['low'] > price_date_picked_pre_day[days_break_high]:
+                        lst_code_picked.append(dic_stock_price['ts_code'])                                
             except:
                 self.logger.info('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
                 self.logger.info(dic_stock_price)
@@ -69,7 +69,7 @@ class StrategyGapBreak(StrategyBase):
 if __name__ == "__main__":
     ds_tushare = DataServiceTushare()
     strategy = StrategyGapBreak()
-    print(strategy.pick_stock('20211126'))
+    print(strategy.pick_stock('20211203'))
     # lst_trade_date = ds_tushare.get_trade_cal('20200101', '20200701')
     # cnt_loop = 0
     # for item_date in lst_trade_date:
