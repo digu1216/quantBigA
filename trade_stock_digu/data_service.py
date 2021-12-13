@@ -369,6 +369,7 @@ class DataServiceTushare(object):
         stock_basic_lst = list(cl_stock_basic.find(
             {}, {'_id': 0}).sort("ts_code", ASCENDING))
         for d in stock_basic_lst:    
+            LOG.info('构建 {} K线数据'.format(d['ts_code']))    
             df_stock_k_data = self._get_daily_k_data_from_ts(d['ts_code'].replace('_', '.'), update)       
             df_stock_daily_basic = self._get_daily_basic_from_ts(d['ts_code'].replace('_', '.'), update)   
             if df_stock_k_data.empty is False and df_stock_daily_basic.empty is False:
